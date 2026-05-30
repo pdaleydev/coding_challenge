@@ -55,14 +55,6 @@ resource "azurerm_application_insights" "ai" {
 
   tags = var.tags
 }
-# resource "azurerm_application_insights" "ai" {
-#   name                = "appi-${var.project}-${var.environment}-${var.location_short}"
-#   resource_group_name = azurerm_resource_group.rg.name
-#   location            = azurerm_resource_group.rg.location
-#   application_type    = "web"
-# 
-#   tags = var.tags
-# }
 
 # ---------------------------------------------------------------------------
 # Consumption Plan (Free Tier — Y1)
@@ -72,8 +64,8 @@ resource "azurerm_service_plan" "plan" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   os_type             = "Windows"
-  # sku_name            = "Y1" # Consumption (Free) plan
-  sku_name = "EP1" # Testing for adding Private Endpoint.
+  sku_name            = "Y1" # Consumption (Free) plan
+  # sku_name = "EP1" # Testing for adding Private Endpoint.
 
   tags = var.tags
 }
