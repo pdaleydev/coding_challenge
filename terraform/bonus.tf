@@ -5,7 +5,6 @@
 variable "ssh_source_cidr" {
   description = "Your public IP (CIDR) that is allowed to SSH into the VM."
   type        = string
-  default     = "1.2.3.4" # To prevent uploading my Public IP to a public repo, I will manually change this in the console after deploying.
 }
 
 variable "vm_admin_username" {
@@ -14,6 +13,11 @@ variable "vm_admin_username" {
   default     = "azureadmin"
 }
 
+variable "vm_ssh_public_key" {
+  description = "SSH public key for VM access, injected via GitHub Actions secret."
+  type        = string
+  sensitive   = true
+}
 
 # ---------------------------------------------------------------------------
 # VNet
@@ -134,7 +138,7 @@ resource "azurerm_linux_virtual_machine" "bonus_vm" {
 
   admin_ssh_key {
     username   = var.vm_admin_username
-    public_key = file("~/.ssh/id_rsa.pub") # Hardcoded path to keep public key out of public repository.
+    public_key = var.vm_ssh_public_key
   }
 
   network_interface_ids = [azurerm_network_interface.vm_nic.id]
