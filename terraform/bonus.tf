@@ -96,7 +96,7 @@ resource "azurerm_subnet_network_security_group_association" "vm_nsg_assoc" {
 # ---------------------------------------------------------------------------
 # Public IP + NIC for the VM
 # ---------------------------------------------------------------------------
-
+ 
 resource "azurerm_public_ip" "vm_pip" {
   name                = "pip-vm-${var.project}-${var.environment}-${var.location_short}"
   resource_group_name = azurerm_resource_group.rg.name
