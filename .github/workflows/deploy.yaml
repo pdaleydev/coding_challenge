@@ -100,6 +100,9 @@ jobs:
 
       - name: Terraform plan
         working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          TF_VAR_ssh_source_cidr:    ${{ secrets.TF_VAR_ssh_source_cidr }}
+          TF_VAR_vm_ssh_public_key:  ${{ secrets.TF_VAR_vm_ssh_public_key }}
         run: terraform plan -out=tfplan
 
       - name: Terraform apply
