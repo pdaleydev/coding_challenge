@@ -139,4 +139,4 @@ jobs:
       - name: Publish function to Azure
         working-directory: ${{ env.FUNCTION_DIR }}
         run: |
-          func azure functionapp publish ${{ secrets.AZURE_FUNCTION_APP_NAME }} --dotnet
+          func azure functionapp publish ${{ secrets.AZURE_FUNCTION_APP_NAME }} --dotnet-isolated
