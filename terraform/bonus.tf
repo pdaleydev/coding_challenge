@@ -131,8 +131,9 @@ resource "azurerm_linux_virtual_machine" "bonus_vm" {
   name                = "vm-${var.project}-${var.environment}-${var.location_short}"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
-  size                = "Standard_B1s"
-  admin_username      = var.vm_admin_username
+  #size                = "Standard_B1s" B series is "retiring"
+  size           = "Standard_D2as_v5"
+  admin_username = var.vm_admin_username
 
   disable_password_authentication = true
 
