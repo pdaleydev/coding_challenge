@@ -91,7 +91,7 @@ resource "azurerm_windows_function_app" "func" {
 
   site_config {
     application_stack {
-      dotnet_version              = "v8.0"
+      dotnet_version              = "v10.0"
       use_dotnet_isolated_runtime = true
     }
   }
@@ -102,5 +102,6 @@ resource "azurerm_windows_function_app" "func" {
     FUNCTIONS_EXTENSION_VERSION           = "~4"
     FUNCTIONS_WORKER_RUNTIME              = "dotnet-isolated"
   }
+
   tags = var.tags
 }
