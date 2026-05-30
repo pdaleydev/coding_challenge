@@ -1,0 +1,142 @@
+name: CI/CD – Provision & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write   # Required for OIDC federated auth to Azure
+  contents: read
+
+env:
+  TF_WORKING_DIR: ./terraform
+  FUNCTION_DIR:   ./function/http
+  DOTNET_VERSION: "10.0.108"
+  TF_VERSION:     "1.15.5"
+
+# ──────────────────────────────────────────────
+# JOB 1 — Lint & Validate (runs on PR and push)
+# ──────────────────────────────────────────────
+jobs:
+  lint-and-validate:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── .NET: restore & build (compile-time check, no deploy) ──
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore .NET dependencies
+        working-directory: ${{ env.FUNCTION_DIR }}
+        run: dotnet restore
+
+      - name: Build .NET project (lint/compile check)
+        working-directory: ${{ env.FUNCTION_DIR }}
+        run: dotnet build --no-restore --configuration Release
+
+      # ── Terraform: format, init (no backend), validate ──
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform fmt (format check)
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init (local, no backend auth needed)
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+# Removing tfsec. This project is not production hardened.
+#      # ── tfsec: static security scan on Terraform code ──
+#      - name: tfsec (Terraform security scan)
+#        uses: aquasecurity/tfsec-action@v1.0.3
+#        with:
+#          working_directory: ${{ env.TF_WORKING_DIR }}
+#          soft_fail: true   # Warn, don't hard-fail — appropriate for a free-tier challenge
+
+# ──────────────────────────────────────────────
+# JOB 2 — Provision (only on push to main)
+# ──────────────────────────────────────────────
+  provision:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+    needs: lint-and-validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+# ──────────────────────────────────────────────
+# JOB 3 — Deploy Function (only on push to main)
+# ──────────────────────────────────────────────
+  deploy-function:
+    name: Deploy Azure Function
+    runs-on: ubuntu-latest
+    needs: provision
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+ #   environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install Azure Functions Core Tools
+        run: |
+          npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
+      - name: Publish function to Azure
+        working-directory: ${{ env.FUNCTION_DIR }}
+        run: |
+          func azure functionapp publish ${{ secrets.AZURE_FUNCTION_APP_NAME }} --dotnet
