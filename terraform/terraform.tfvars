@@ -3,6 +3,8 @@ project         = "hlwrld"
 environment     = "dev"
 location        = "westus2"
 location_short  = "wus2"
+# ssh_source_cidr = "MY PUBLIC IP"
+vm_admin_username = "pdadmin"
 
 tags = {
   environment = "dev"
